@@ -138,7 +138,11 @@ Viewers can only see their own records and the general summary. Analysts get bro
 
 Role assignment happens through admin user management endpoints, not during registration.
 
-The very first user to register in a fresh database should be manually promoted to `admin` by updating their role directly in MongoDB. From there, that admin can manage everyone else's roles through the API. This is intentional — there's no self-service way to become an admin, which keeps things secure by default.
+The very first user who registers in a fresh database is automatically assigned the `admin` role. This ensures that the system always has an initial administrator without requiring any manual database updates.
+
+All subsequent users are assigned the `viewer` role by default. From that point onward, the admin can manage roles and permissions of other users through the provided user management APIs.
+
+This approach removes the need for manual intervention while still maintaining security, as there is no way for users to assign themselves elevated privileges during registration.
 
 ---
 
