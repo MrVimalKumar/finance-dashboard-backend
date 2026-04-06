@@ -21,7 +21,14 @@ exports.createRecord = async (data, user) => {
     entityId: record._id,
   });
 
-  return record;
+  return {
+    id: record._id,
+    amount: record.amount,
+    type,
+    category,
+    date,
+    notes,
+  };
 };
 
 exports.deleteRecord = async (id, user) => {
@@ -57,7 +64,7 @@ exports.getRecords = async (queryParams, user) => {
     page = 1,
     limit = 10,
     search,
-    deleted
+    deleted,
   } = queryParams;
 
   const query = {};
@@ -96,18 +103,37 @@ exports.getRecords = async (queryParams, user) => {
 
   const [records, total] = await Promise.all([
     Record.find(query)
+      .populate("userId", "name role")
+      .select("-__v")
       .sort({ date: -1 })
       .skip(skip)
       .limit(Number(limit))
       .lean(),
+
     Record.countDocuments(query),
   ]);
+
+  const cleanedRecords = records.map((r) => ({
+    id: r._id,
+    amount: parseFloat(r.amount), // Decimal fix
+    type: r.type,
+    category: r.category,
+    date: r.date,
+    notes: r.notes,
+    user: r.userId
+      ? {
+          id: r.userId._id,
+          name: r.userId.name,
+          role: r.userId.role,
+        }
+      : null,
+  }));
 
   return {
     total,
     page: Number(page),
     limit: Number(limit),
-    data: records,
+    data: cleanedRecords,
   };
 };
 
@@ -122,14 +148,18 @@ exports.updateRecord = async (id, data, user) => {
     throw new ApiException("Cannot update deleted record", 400);
   }
 
-  if (
-    user.role !== "admin" &&
-    record.userId.toString() !== user.userId
-  ) {
+  if (user.role !== "admin" && record.userId.toString() !== user.userId) {
     throw new ApiException("Forbidden", 403);
   }
 
-  Object.assign(record, data);
+  const allowedFields = ["amount", "type", "category", "date", "notes"];
+
+  Object.keys(data).forEach((key) => {
+    if (allowedFields.includes(key)) {
+      record[key] = data[key];
+    }
+  });
+
   await record.save();
 
   await AuditLog.create({
@@ -139,5 +169,12 @@ exports.updateRecord = async (id, data, user) => {
     entityId: record._id,
   });
 
-  return record;
+  return {
+    id: record._id,
+    amount: parseFloat(record.amount),
+    type: record.type,
+    category: record.category,
+    date: record.date,
+    notes: record.notes,
+  };
 };

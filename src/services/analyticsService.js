@@ -1,10 +1,11 @@
 const Record = require("../models/record");
+const mongoose = require("mongoose"); 
 
 const buildMatch = (user) => {
   const match = { isDeleted: false };
 
   if (user.role !== "admin" && user.role !== "analyst") {
-    match.userId = user.userId;
+    match.userId = new mongoose.Types.ObjectId(user.userId);
   }
 
   return match;
@@ -20,12 +21,12 @@ exports.getSummary = async (user) => {
         _id: null,
         totalIncome: {
           $sum: {
-            $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
+            $cond: [{ $eq: ["$type", "income"] }, { $toDouble: "$amount" }, 0],
           },
         },
         totalExpense: {
           $sum: {
-            $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
+            $cond: [{ $eq: ["$type", "expense"] }, { $toDouble: "$amount" }, 0],
           },
         },
         count: { $sum: 1 },
@@ -56,7 +57,7 @@ exports.getCategorySummary = async (user) => {
           category: "$category",
           type: "$type",
         },
-        total: { $sum: "$amount" },
+        total: { $sum: { $toDouble: "$amount" } },
       },
     },
   ]);
@@ -75,12 +76,12 @@ exports.getMonthlyTrends = async (user) => {
         },
         income: {
           $sum: {
-            $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
+            $cond: [{ $eq: ["$type", "income"] }, { $toDouble: "$amount" }, 0],
           },
         },
         expense: {
           $sum: {
-            $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
+            $cond: [{ $eq: ["$type", "expense"] }, { $toDouble: "$amount" }, 0],
           },
         },
       },

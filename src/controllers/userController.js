@@ -3,7 +3,7 @@ const wrapAsync = require("../utils/wrapAsync");
 const ApiException = require("../utils/ApiException");
 
 exports.getUsers = wrapAsync(async (req, res) => {
-  const users = await User.find().select("-password");
+  const users = await User.find().select("-password -__v");
 
   res.json({
     success: true,
